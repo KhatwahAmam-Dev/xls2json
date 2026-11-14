@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel to JSON Master Data with GitHub Sync</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Inter', sans-serif; } </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-600 text-white p-2 rounded-xl font-bold text-lg shadow-md">📊</div>
+                <div>
+                    <h1 class="text-lg font-bold text-slate-900">MasterData GitHub Sync</h1>
+                    <p class="text-xs text-slate-500">Excel to JSON with Validation & GitHub Integration</p>
+                </div>
+            </div>
+            <div class="text-xs bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-full font-medium border border-emerald-100">
+                ✨ Pro Edition
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-grow grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- Kolom Kiri: Upload, Validasi & GitHub Config -->
+        <div class="lg:col-span-5 space-y-6">
+            
+            <!-- 1. Upload File -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <h2 class="text-base font-semibold text-slate-900 mb-4">1. Unggah File Excel</h2>
+                <div id="drop-zone" class="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:border-indigo-500 transition-all cursor-pointer bg-slate-50/50">
+                    <input type="file" id="excel-file" accept=".xlsx, .xls, .csv" class="hidden">
+                    <div class="mx-auto flex flex-col items-center">
+                        <svg class="w-10 h-10 text-indigo-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <p class="text-xs font-medium text-slate-700">Seret file Excel ke sini, atau <span class="text-indigo-600 underline">pilih file</span></p>
+                    </div>
+                </div>
+                <div id="file-info" class="mt-3 text-xs text-slate-500 hidden font-medium"></div>
+            </div>
+
+            <!-- 2. Konfigurasi & Validasi -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <h2 class="text-base font-semibold text-slate-900 mb-4">2. Pengaturan & Validasi</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Pilih Sheet</label>
+                        <select id="sheet-select" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-lg p-2.5" disabled>
+                            <option value="">Pilih file terlebih dahulu</option>
+                        </select>
+                    </div>
+                    <!-- Panel Status Validasi -->
+                    <div id="validation-box" class="p-3 rounded-xl text-xs bg-slate-50 border border-slate-200 text-slate-600">
+                        🔍 Belum ada data divalidasi.
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Integrasi GitHub -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <h2 class="text-base font-semibold text-slate-900 mb-4">3. Kirim ke GitHub</h2>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">GitHub Personal Access Token (PAT)</label>
+                        <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" class="w-full bg-slate-50 border border-slate-300 text-xs rounded-lg p-2.5">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Username / Owner</label>
+                            <input type="text" id="gh-owner" placeholder="cth: username" class="w-full bg-slate-50 border border-slate-300 text-xs rounded-lg p-2.5">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Nama Repository</label>
+                            <input type="text" id="gh-repo" placeholder="cth: master-data" class="w-full bg-slate-50 border border-slate-300 text-xs rounded-lg p-2.5">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Path File di Repo</label>
+                        <input type="text" id="gh-path" value="data/master.json" class="w-full bg-slate-50 border border-slate-300 text-xs rounded-lg p-2.5">
+                    </div>
+                    <button id="btn-github" onclick="pushToGitHub()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2.5 rounded-lg shadow-sm transition disabled:opacity-50 mt-2" disabled>
+                        🚀 Push Update ke GitHub
+                    </button>
+                    <p id="gh-status" class="text-xs text-center mt-2 font-medium"></p>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Kolom Kanan: Hasil Preview JSON -->
+        <div class="lg:col-span-7 flex flex-col">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex-grow flex flex-col">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-base font-semibold text-slate-900">Hasil Output JSON</h2>
+                    <div class="flex space-x-2">
+                        <button id="btn-copy" onclick="copyJSON()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2 rounded-lg transition disabled:opacity-50" disabled>📋 Salin</button>
+                        <button id="btn-download" onclick="downloadJSON()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-sm transition disabled:opacity-50" disabled>💾 Unduh JSON</button>
+                    </div>
+                </div>
+                <div class="relative flex-grow">
+                    <pre id="json-output" class="w-full h-[500px] bg-slate-900 text-slate-200 p-4 rounded-xl text-xs font-mono overflow-auto border border-slate-800 shadow-inner"><code>// Data JSON hasil konversi & validasi akan muncul di sini...</code></pre>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400 mt-8">
+        MasterData GitHub Sync &bull; Dibuat khusus untuk Mas Bro 🚀
+    </footer>
+
+    <!-- Script Utama -->
+    <script>
+        let workbookData = null;
+        let currentJSON = '';
+        let isValid = false;
+
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('excel-file');
+        const sheetSelect = document.getElementById('sheet-select');
+        const jsonOutput = document.getElementById('json-output');
+        const btnCopy = document.getElementById('btn-copy');
+        const btnDownload = document.getElementById('btn-download');
+        const btnGithub = document.getElementById('btn-github');
+        const fileInfo = document.getElementById('file-info');
+        const validationBox = document.getElementById('validation-box');
+
+        dropZone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => { if (e.target.files.length) handleFileSelect(e.target.files[0]); });
+
+        function handleFileSelect(file) {
+            fileInfo.textContent = `File terpilih: ${file.name} (${(file.size/1024).toFixed(1)} KB)`;
+            fileInfo.classList.remove('hidden');
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                workbookData = XLSX.read(data, { type: 'array' });
+                
+                sheetSelect.innerHTML = '';
+                workbookData.SheetNames.forEach(name => {
+                    let opt = document.createElement('option');
+                    opt.value = name;
+                    opt.textContent = name;
+                    sheetSelect.appendChild(opt);
+                });
+                sheetSelect.disabled = false;
+                processSheet();
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        sheetSelect.addEventListener('change', processSheet);
+
+        function processSheet() {
+            if (!workbookData) return;
+            const sheetName = sheetSelect.value;
+            const worksheet = workbookData.Sheets[sheetName];
+            const rawData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+            // --- PROSES VALIDASI DATA ---
+            let errors = [];
+            let cleanedData = [];
+
+            rawData.forEach((row, index) => {
+                let rowNum = index + 2; // Baris Excel (asumsi baris 1 header)
+                // Contoh aturan validasi: Cek apakah kolom pertama (ID/Kunci utama) kosong
+                let firstKey = Object.keys(row)[0];
+                if (firstKey && (row[firstKey] === "" || row[firstKey] === null)) {
+                    errors.push(`Baris ${rowNum}: Kolom "${firstKey}" kosong.`);
+                }
+                cleanedData.push(row);
+            });
+
+            if (errors.length > 0) {
+                validationBox.className = "p-3 rounded-xl text-xs bg-amber-50 border border-amber-200 text-amber-800";
+                validationBox.innerHTML = `⚠️ <b>Peringatan Validasi (${errors.length} catatan):</b><br>` + errors.slice(0, 3).join('<br>');
+                isValid = false;
+            } else if (cleanedData.length === 0) {
+                validationBox.className = "p-3 rounded-xl text-xs bg-rose-50 border border-rose-200 text-rose-800";
+                validationBox.innerHTML = `❌ File kosong atau format tidak terbaca.`;
+                isValid = false;
+            } else {
+                validationBox.className = "p-3 rounded-xl text-xs bg-emerald-50 border border-emerald-200 text-emerald-800";
+                validationBox.innerHTML = `✅ <b>Validasi Berhasil!</b> ${cleanedData.length} baris data siap digunakan.`;
+                isValid = true;
+            }
+
+            currentJSON = JSON.stringify(cleanedData, null, 2);
+            jsonOutput.querySelector('code').textContent = currentJSON;
+
+            if (isValid && cleanedData.length > 0) {
+                btnCopy.disabled = false;
+                btnDownload.disabled = false;
+                btnGithub.disabled = false;
+            } else {
+                btnCopy.disabled = true;
+                btnDownload.disabled = true;
+                btnGithub.disabled = true;
+            }
+        }
+
+        function copyJSON() {
+            navigator.clipboard.writeText(currentJSON).then(() => {
+                alert('JSON berhasil disalin ke clipboard!');
+            });
+        }
+
+        function downloadJSON() {
+            const blob = new Blob([currentJSON], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${sheetSelect.value.toLowerCase().replace(/\s+/g, '_')}_master.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // --- FUNGSI INTEGRASI GITHUB API ---
+        async function pushToGitHub() {
+            const token = document.getElementById('gh-token').value.trim();
+            const owner = document.getElementById('gh-owner').value.trim();
+            const repo = document.getElementById('gh-repo').value.trim();
+            const path = document.getElementById('gh-path').value.trim();
+            const statusEl = document.getElementById('gh-status');
+
+            if (!token || !owner || !repo || !path) {
+                alert('Harap isi semua kolom konfigurasi GitHub (Token, Owner, Repo, Path)!');
+                return;
+            }
+
+            statusEl.textContent = '⏳ Memeriksa file lama di GitHub...';
+            statusEl.className = 'text-xs text-center mt-2 text-indigo-600 font-medium';
+
+            const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+            const contentEncoded = btoa(unescape(encodeURIComponent(currentJSON)));
+
+            try {
+                // 1. Ambil SHA file lama jika sudah ada (syarat update file di GitHub API)
+                let sha = '';
+                const getRes = await fetch(apiUrl, {
+                    headers: { 'Authorization': `token ${token}` }
+                });
+                
+                if (getRes.ok) {
+                    const fileData = await getRes.json();
+                    sha = fileData.sha;
+                }
+
+                // 2. Kirim commit baru
+                statusEl.textContent = '⏳ Mengirim pembaruan ke GitHub...';
+                const putRes = await fetch(apiUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: `Update master data via web converter - ${new Date().toLocaleString()}`,
+                        content: contentEncoded,
+                        sha: sha ? sha : undefined
+                    })
+                });
+
+                if (putRes.ok) {
+                    statusEl.textContent = '🎉 Berhasil! Data sukses ter-push ke GitHub.';
+                    statusEl.className = 'text-xs text-center mt-2 text-emerald-600 font-bold';
+                } else {
+                    const errJson = await putRes.json();
+                    throw new Error(errJson.message || 'Gagal melakukan commit.');
+                }
+            } catch (err) {
+                statusEl.textContent = `❌ Error: ${err.message}`;
+                statusEl.className = 'text-xs text-center mt-2 text-rose-600 font-bold';
+            }
+        }
+    </script>
+</body>
+</html>
